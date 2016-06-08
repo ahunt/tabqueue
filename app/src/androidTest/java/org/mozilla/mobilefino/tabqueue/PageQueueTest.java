@@ -32,18 +32,18 @@ public class PageQueueTest extends AndroidTestCase {
         assertEquals(pq.getPages().get(0), url);
     }
 
-//    @Test
-//    public void test_deletion_succeeds() {
-//        Context context = InstrumentationRegistry.getContext();
-//        PageQueue pq = new PageQueue(context);
-//
-//        assertEquals(pq.getPages().size(), 0);
-//
-//        final String url = "http://mozilla.org";
-//        pq.add(url);
-//        assertEquals(pq.getPages().size(), 1);
-//        pq.remove(url);
-//        assertEquals(pq.getPages().size(), 0);
-//    }
+    @Test
+    public void test_deletion_succeeds() {
+        Context context = InstrumentationRegistry.getContext();
+        PageQueue pq = new PageQueue(context);
+
+        assertEquals(pq.getPages().size(), 0);
+
+        final String url = "http://mozilla.org";
+        pq.add(url);
+        assertEquals(pq.getPages().size(), 1);
+        pq.remove(url);
+        assertEquals(pq.getPages().size(), 0);
+    }
 
 }

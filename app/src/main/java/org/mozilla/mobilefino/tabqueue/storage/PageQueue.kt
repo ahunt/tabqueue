@@ -62,6 +62,14 @@ class PageQueue {
         commit()
     }
 
+    fun remove(url: String) {
+        synchronized(mPageList) {
+            mPageList.remove(url)
+        }
+
+        commit()
+    }
+
     fun getPages(): List<String> {
         synchronized(mPageList) {
             return Collections.unmodifiableList(mPageList.toList())
