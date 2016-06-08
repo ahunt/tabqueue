@@ -3,6 +3,7 @@ package org.mozilla.mobilefino.tabqueue.storage
 import android.content.Context
 import org.json.JSONArray
 import java.lang.ref.WeakReference
+import java.util.*
 
 val SHAREDPREFERENCES_NAME = "pagequeue"
 
@@ -49,6 +50,19 @@ class PageQueue {
         }
 
         commit()
+    }
+
+    fun getPages(): List<String> {
+        var list: LinkedList<String> = LinkedList<String>()
+
+        synchronized(mPageList) {
+            var length = mPageList.length()
+            for (i in 0..(length-1)) {
+                list.add(mPageList.getString(i))
+            }
+        }
+
+        return list
     }
 }
 
