@@ -13,7 +13,7 @@ val KEY_QUEUE = "key_sitequeue"
  * List of pages that have been queued for reading.
  */
 class PageQueue {
-    val mPageList: JSONArray
+    val mPageList: LinkedHashSet<String>
 
     val mContext: WeakReference<Context>
 
@@ -22,12 +22,17 @@ class PageQueue {
 
         val preferences = context.getSharedPreferences(SHAREDPREFERENCES_NAME, Context.MODE_PRIVATE)
 
+        mPageList = LinkedHashSet()
+
         if (preferences.contains(KEY_QUEUE)) {
             val jsonString = preferences.getString(KEY_QUEUE, "");
+            val jsonArray = JSONArray(jsonString)
+            // Iterate and insert
 
-            mPageList = JSONArray(jsonString)
-        } else {
-            mPageList = JSONArray()
+            var length = jsonArray.length()
+            for (i in 0..(length-1)) {
+                mPageList.add(jsonArray.getString(i))
+            }
         }
     }
 
@@ -35,7 +40,12 @@ class PageQueue {
         synchronized(mPageList) {
             val context = mContext.get() ?: return
 
-            val jsonString = mPageList.toString()
+            val jsonArray = JSONArray()
+            for (url in mPageList) {
+                jsonArray.put(url)
+            }
+
+            val jsonString = jsonArray.toString()
 
             context.getSharedPreferences(SHAREDPREFERENCES_NAME, Context.MODE_PRIVATE)
                     .edit()
@@ -46,23 +56,16 @@ class PageQueue {
 
     fun add(url: String) {
         synchronized(mPageList) {
-            mPageList.put(url)
+            mPageList.add(url)
         }
 
         commit()
     }
 
     fun getPages(): List<String> {
-        var list: LinkedList<String> = LinkedList<String>()
-
         synchronized(mPageList) {
-            var length = mPageList.length()
-            for (i in 0..(length-1)) {
-                list.add(mPageList.getString(i))
-            }
+            return Collections.unmodifiableList(mPageList.toList())
         }
-
-        return list
     }
 }
 
