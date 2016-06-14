@@ -1,7 +1,14 @@
 package org.mozilla.mobilefino.tabqueue
 
+import android.app.PendingIntent
 import android.content.Context
+import android.content.DialogInterface
+import android.content.Intent
+import android.graphics.BitmapFactory
+import android.graphics.drawable.ColorDrawable
+import android.net.Uri
 import android.os.Bundle
+import android.support.customtabs.CustomTabsIntent
 import android.support.design.widget.FloatingActionButton
 import android.support.design.widget.Snackbar
 import android.support.v4.app.LoaderManager
@@ -50,15 +57,34 @@ class QueueViewActivity : AppCompatActivity() {
         }
     }
 
-    class PageViewHolder(v: View): RecyclerView.ViewHolder(v) {
+    inner class PageViewHolder(v: View): RecyclerView.ViewHolder(v), View.OnClickListener {
         val title: TextView
 
         init {
             title = v.findViewById(R.id.page_title) as TextView
+            v.setOnClickListener(this)
+        }
+
+        override fun onClick(view: View) {
+            val url = title.text
+
+            val builder = CustomTabsIntent.Builder()
+
+            // TODO: do something with the pending intents
+            // TODO 2: detect exit (via X button)
+            // TODO 3: use a checkmark instead of the X button?
+            builder.addMenuItem("Keep for later", this@QueueViewActivity.createPendingResult(0, Intent(), 0))
+            builder.setActionButton(BitmapFactory.decodeResource(getResources(), android.R.drawable.ic_media_next), "Next", this@QueueViewActivity.createPendingResult(0, Intent(), 0))
+
+            val customTabsIntent = builder.build()
+            // We (TQ) are probably the default app - we need to explicitly set the browser to be opened.
+            // For now we can just hardcode one browser - eventually we'll need a selector.
+            customTabsIntent.intent.setPackage("com.chrome.dev")
+            customTabsIntent.launchUrl(this@QueueViewActivity, Uri.parse(url.toString()));
         }
     }
 
-    class PageListAdapter(): RecyclerView.Adapter<PageViewHolder>() {
+    inner class PageListAdapter(): RecyclerView.Adapter<PageViewHolder>() {
         private var mPages: List<String> = Collections.emptyList()
 
         override fun getItemCount(): Int {
