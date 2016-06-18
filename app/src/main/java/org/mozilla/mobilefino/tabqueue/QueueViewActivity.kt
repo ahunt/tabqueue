@@ -1,6 +1,8 @@
 package org.mozilla.mobilefino.tabqueue
 
+import android.app.Activity
 import android.app.PendingIntent
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
@@ -20,11 +22,15 @@ import android.support.v7.widget.RecyclerView
 import android.support.v7.widget.Toolbar
 import android.view.*
 import android.widget.TextView
+import android.widget.Toast
 import org.mozilla.mobilefino.tabqueue.storage.getPageQueue
 import java.util.*
 
-class QueueViewActivity : AppCompatActivity() {
+const val FLAG_KEEP_URL = "KEEP_URL"
+const val FLAG_NEXT = "NEXT_URL"
+const val KEY_LAST_URL = "LAST_OPENED"
 
+class QueueViewActivity : AppCompatActivity() {
     class QueuedPageLoader(context: Context): AsyncTaskLoader<List<String>>(context) {
 
         override fun loadInBackground(): List<String> {
@@ -66,21 +72,77 @@ class QueueViewActivity : AppCompatActivity() {
         }
 
         override fun onClick(view: View) {
-            val url = title.text
+            val url = title.text.toString()
+            openCustomTab(url)
+        }
+    }
 
-            val builder = CustomTabsIntent.Builder()
+    // This is run before onResume(). However it also looks like we don't run onResume if we start a new
+    // activity here.
+    override fun onNewIntent(intent: Intent) {
+        if (intent.hasExtra(FLAG_KEEP_URL)) {
+            // Clear the last URL so that it isn't removed from the list in onResume
+            // This is hacky, there's certainly some potential for a better architecture
+            val preferences = getPreferences(MODE_PRIVATE)
+            preferences.edit()
+                    .putString(KEY_LAST_URL, null)
+                    .apply()
+        } else if (intent.hasExtra(FLAG_NEXT)) {
+            val pq = getPageQueue(this)
 
-            // TODO: do something with the pending intents
-            // TODO 2: detect exit (via X button)
-            // TODO 3: use a checkmark instead of the X button?
-            builder.addMenuItem("Keep for later", this@QueueViewActivity.createPendingResult(0, Intent(), 0))
-            builder.setActionButton(BitmapFactory.decodeResource(getResources(), android.R.drawable.ic_media_next), "Next", this@QueueViewActivity.createPendingResult(0, Intent(), 0))
+            val preferences = getPreferences(MODE_PRIVATE)
+            val lastURL = preferences.getString(KEY_LAST_URL, "")
+            pq.remove(lastURL)
 
-            val customTabsIntent = builder.build()
-            // We (TQ) are probably the default app - we need to explicitly set the browser to be opened.
-            // For now we can just hardcode one browser - eventually we'll need a selector.
-            customTabsIntent.intent.setPackage("com.chrome.dev")
-            customTabsIntent.launchUrl(this@QueueViewActivity, Uri.parse(url.toString()));
+            // TODO: in future we need to adapt the custom tab to not show the next button if
+            // there are no more pages in the list.
+            // TODO: grab the next page, not the first page in the list. (We don't really care
+            // for now though.)
+            if (pq.getPages().size > 0) {
+                val nextURL = pq.getPages().first()
+
+                openCustomTab(nextURL)
+            }
+        }
+
+        super.onNewIntent(intent)
+    }
+
+    private fun openCustomTab(url: String) {
+        val builder = CustomTabsIntent.Builder()
+
+        val actionIntent = Intent(applicationContext, CCTReceiver::class.java)
+        actionIntent.putExtra(FLAG_NEXT, true)
+
+        val pendingIntent = PendingIntent.getBroadcast(applicationContext, 0, actionIntent, 0)
+        builder.setActionButton(BitmapFactory.decodeResource(getResources(), android.R.drawable.ic_media_next), "Next", pendingIntent)
+
+        val actionIntentKeep = Intent(applicationContext, CCTReceiver::class.java)
+        actionIntentKeep.putExtra(FLAG_KEEP_URL, true)
+        val pendingIntentKeep = PendingIntent.getBroadcast(applicationContext, 1, actionIntentKeep, 0)
+        builder.addMenuItem("Keep for later", pendingIntentKeep)
+
+        val customTabsIntent = builder.build()
+        // We (TQ) are probably the default app - we need to explicitly set the browser to be opened.
+        // For now we can just hardcode one browser - eventually we'll need a selector.
+        customTabsIntent.intent.setPackage("com.chrome.dev")
+
+        // Store the last URL to be opened in a preference - this allows us to remove it from the
+        // list when we return to the Activity (assuming we don't pass the keep-url flag).
+        val preferences = getPreferences(MODE_PRIVATE)
+        preferences.edit()
+                .putString(KEY_LAST_URL, url)
+                .apply()
+
+        customTabsIntent.launchUrl(this@QueueViewActivity, Uri.parse(url));
+
+    }
+
+    class CCTReceiver(): BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent?) {
+            val qvIntent = Intent(context, QueueViewActivity::class.java)
+            qvIntent.putExtras(intent?.extras)
+            context.startActivity(qvIntent)
         }
     }
 
@@ -133,6 +195,21 @@ class QueueViewActivity : AppCompatActivity() {
 
         val loaderCallbacks = QueuedPageLoaderCallbacks(this, pageList.adapter as PageListAdapter)
         supportLoaderManager.initLoader(0, null, loaderCallbacks).forceLoad()
+
+        val preferences = getPreferences(MODE_PRIVATE)
+        val url = preferences.getString(KEY_LAST_URL, null)
+
+        if (url != null) {
+            val pq = getPageQueue(this)
+
+            preferences.edit()
+                    .putString(KEY_LAST_URL, null)
+                    .apply()
+
+            if (!intent.hasExtra(FLAG_KEEP_URL)) {
+                pq.remove(url)
+            }
+        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {

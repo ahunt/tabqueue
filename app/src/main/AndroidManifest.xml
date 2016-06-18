@@ -48,6 +48,8 @@
                 <data android:mimeType="application/xhtml+xml"/>
             </intent-filter>
         </activity>
+
+        <receiver android:name=".QueueViewActivity$CCTReceiver" />
     </application>
 
 </manifest>
