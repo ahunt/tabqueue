@@ -114,8 +114,11 @@ class QueueViewActivity : AppCompatActivity() {
         val actionIntent = Intent(applicationContext, CCTReceiver::class.java)
         actionIntent.putExtra(FLAG_NEXT, true)
 
-        val pendingIntent = PendingIntent.getBroadcast(applicationContext, 0, actionIntent, 0)
-        builder.setActionButton(BitmapFactory.decodeResource(getResources(), android.R.drawable.ic_media_next), "Next", pendingIntent)
+        val pq = getPageQueue(this)
+        if (pq.getPages().size > 1) {
+            val pendingIntent = PendingIntent.getBroadcast(applicationContext, 0, actionIntent, 0)
+            builder.setActionButton(BitmapFactory.decodeResource(getResources(), android.R.drawable.ic_media_next), "Next", pendingIntent)
+        }
 
         val actionIntentKeep = Intent(applicationContext, CCTReceiver::class.java)
         actionIntentKeep.putExtra(FLAG_KEEP_URL, true)
