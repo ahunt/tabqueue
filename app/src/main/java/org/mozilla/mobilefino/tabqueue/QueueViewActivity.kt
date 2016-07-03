@@ -192,6 +192,13 @@ class QueueViewActivity : AppCompatActivity() {
     }
 
     override fun onResume() {
+        // TODO: this is broken (and hard to understand)
+        // We could also receive onResume if the app is killed (while a custom tab is open)
+        // and restarted, leading to the tab being lost. Therefore it's ultimately better to not
+        // delete any data with the X button (which might be better UX in general).
+        // Our previous assumption was that we'd receive onResume (with a LAST_URL set) only when
+        // the user uses X to exit the custom tab (we don't receive any callbacks in that case).
+
         super.onResume()
 
         val pageList = findViewById(R.id.page_list) as RecyclerView
