@@ -1,0 +1,11 @@
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- A 'parent' preference, which enables/disables child preferences (below)
+         when checked/unchecked. -->
+    <SwitchPreference
+        android:defaultValue="true"
+        android:key="notifications_new_message"
+        android:summary="@string/pref_description_recently_queued"
+        android:title="@string/pref_title_recently_queued"/>
+
+</PreferenceScreen>

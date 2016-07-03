@@ -1,4 +1,21 @@
 <resources>
     <string name="app_name">TabQueue</string>
     <string name="action_settings">Settings</string>
+    <string name="title_activity_settings">Settings</string>
+
+    <!-- Strings related to Settings -->
+
+    <!-- General Settings -->
+    <string name="pref_header_general">General</string>
+
+    <string name="pref_title_queuemode">Enable Queue Mode</string>
+    <string name="pref_description_queuemode">Queue opened links (instead of opening them immediately), to allow reading later</string>
+
+    <string name="pref_title_system_sync_settings">System sync settings</string>
+
+    <!-- Notifications settings -->
+    <string name="pref_header_notifications">Notifications</string>
+
+    <string name="pref_title_recently_queued">Show recently queued pages</string>
+    <string name="pref_description_recently_queued">Show a notification when pages are queued. This notification allows opening the page directly.</string>
 </resources>

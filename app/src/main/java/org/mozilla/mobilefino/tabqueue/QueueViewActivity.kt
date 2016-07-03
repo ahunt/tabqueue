@@ -229,6 +229,8 @@ class QueueViewActivity : AppCompatActivity() {
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
+            val intent = Intent(applicationContext, SettingsActivity::class.java)
+            startActivity(intent)
             return true
         }
 

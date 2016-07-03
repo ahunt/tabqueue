@@ -1,0 +1,9 @@
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <SwitchPreference
+        android:defaultValue="true"
+        android:key="queue_mode"
+        android:summary="@string/pref_description_queuemode"
+        android:title="@string/pref_title_queuemode"/>
+
+</PreferenceScreen>
