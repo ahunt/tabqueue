@@ -21,6 +21,7 @@ import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.support.v7.widget.Toolbar
 import android.view.*
+import android.widget.RemoteViews
 import android.widget.TextView
 import android.widget.Toast
 import org.mozilla.mobilefino.tabqueue.storage.getPageQueue
@@ -111,19 +112,18 @@ class QueueViewActivity : AppCompatActivity() {
     private fun openCustomTab(url: String) {
         val builder = CustomTabsIntent.Builder()
 
-        val actionIntent = Intent(applicationContext, CCTReceiver::class.java)
-        actionIntent.putExtra(FLAG_NEXT, true)
+        val actionIntentNext = Intent(applicationContext, CCTReceiver::class.java)
+        actionIntentNext.putExtra(FLAG_NEXT, true)
+        val pendingIntentNext = PendingIntent.getBroadcast(applicationContext, 0, actionIntentNext, 0)
 
         val pq = getPageQueue(this)
         if (pq.getPages().size > 1) {
-            val pendingIntent = PendingIntent.getBroadcast(applicationContext, 0, actionIntent, 0)
-            builder.setActionButton(BitmapFactory.decodeResource(getResources(), android.R.drawable.ic_media_next), "Next", pendingIntent)
+            builder.setActionButton(BitmapFactory.decodeResource(getResources(), android.R.drawable.ic_media_next), "Next", pendingIntentNext)
         }
 
-        val actionIntentKeep = Intent(applicationContext, CCTReceiver::class.java)
-        actionIntentKeep.putExtra(FLAG_KEEP_URL, true)
-        val pendingIntentKeep = PendingIntent.getBroadcast(applicationContext, 1, actionIntentKeep, 0)
-        builder.addMenuItem("Keep for later", pendingIntentKeep)
+        val remoteViews = RemoteViews(packageName, R.layout.custom_tab_navigation)
+        val ids = intArrayOf(R.id.button_done, R.id.button_next)
+        builder.setSecondaryToolbarViews(remoteViews, ids, pendingIntentNext)
 
         val customTabsIntent = builder.build()
         // We (TQ) are probably the default app - we need to explicitly set the browser to be opened.
