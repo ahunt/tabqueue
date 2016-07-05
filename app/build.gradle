@@ -2,12 +2,12 @@ apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 
 android {
-    compileSdkVersion 23
-    buildToolsVersion "23.0.3"
+    compileSdkVersion 24
+    buildToolsVersion "24"
     defaultConfig {
         applicationId "org.mozilla.mobilefino.tabqueue"
         minSdkVersion 15
-        targetSdkVersion 23
+        targetSdkVersion 24
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
@@ -25,7 +25,7 @@ android {
     }
 }
 
-def tools_version='23.4.0'
+def tools_version = '24.0.0'
 
 dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
@@ -39,6 +39,7 @@ dependencies {
     androidTestCompile 'com.android.support.test:rules:0.4.1'
 
     compile "com.android.support:customtabs:$tools_version"
+    compile "com.android.support:support-v4:$tools_version"
 }
 repositories {
     mavenCentral()
