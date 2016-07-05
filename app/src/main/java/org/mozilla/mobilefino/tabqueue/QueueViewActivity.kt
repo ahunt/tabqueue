@@ -27,8 +27,9 @@ import android.widget.Toast
 import org.mozilla.mobilefino.tabqueue.storage.getPageQueue
 import java.util.*
 
-const val FLAG_KEEP_URL = "KEEP_URL"
+const val FLAG_KEEP = "KEEP_URL"
 const val FLAG_NEXT = "NEXT_URL"
+const val FLAG_REMOVE_URL = "REMOVE_URL"
 const val KEY_LAST_URL = "LAST_OPENED"
 
 class QueueViewActivity : AppCompatActivity() {
@@ -81,29 +82,29 @@ class QueueViewActivity : AppCompatActivity() {
     // This is run before onResume(). However it also looks like we don't run onResume if we start a new
     // activity here.
     override fun onNewIntent(intent: Intent) {
-        if (intent.hasExtra(FLAG_KEEP_URL)) {
-            // Clear the last URL so that it isn't removed from the list in onResume
-            // This is hacky, there's certainly some potential for a better architecture
-            val preferences = getPreferences(MODE_PRIVATE)
-            preferences.edit()
-                    .putString(KEY_LAST_URL, null)
-                    .apply()
-        } else if (intent.hasExtra(FLAG_NEXT)) {
+        if (intent.hasExtra(FLAG_REMOVE_URL) ||
+                intent.hasExtra(FLAG_NEXT)) {
             val pq = getPageQueue(this)
 
             val preferences = getPreferences(MODE_PRIVATE)
             val lastURL = preferences.getString(KEY_LAST_URL, "")
             pq.remove(lastURL)
 
-            // TODO: in future we need to adapt the custom tab to not show the next button if
-            // there are no more pages in the list.
-            // TODO: grab the next page, not the first page in the list. (We don't really care
-            // for now though.)
-            if (pq.getPages().size > 0) {
-                val nextURL = pq.getPages().first()
+            if (intent.hasExtra(FLAG_NEXT)) {
+                // TODO: grab the next page, not the first page in the list. (We don't really care
+                // for now though.)
+                if (pq.getPages().size > 0) {
+                    val nextURL = pq.getPages().first()
 
-                openCustomTab(nextURL)
+                    openCustomTab(nextURL)
+                }
             }
+
+            // There's no strict need to clear this URL, however we might as well get rid of it for
+            // organisation reasons.
+            preferences.edit()
+                    .putString(KEY_LAST_URL, null)
+                    .apply()
         }
 
         super.onNewIntent(intent)
@@ -112,18 +113,27 @@ class QueueViewActivity : AppCompatActivity() {
     private fun openCustomTab(url: String) {
         val builder = CustomTabsIntent.Builder()
 
-        val actionIntentNext = Intent(applicationContext, CCTReceiver::class.java)
-        actionIntentNext.putExtra(FLAG_NEXT, true)
-        val pendingIntentNext = PendingIntent.getBroadcast(applicationContext, 0, actionIntentNext, 0)
-
         val pq = getPageQueue(this)
         if (pq.getPages().size > 1) {
+            val actionIntentNext = Intent(this, CCTReceiver::class.java)
+            actionIntentNext.putExtra(FLAG_NEXT, true)
+            val pendingIntentNext = PendingIntent.getBroadcast(this, 0, actionIntentNext, 0)
+
             builder.setActionButton(BitmapFactory.decodeResource(getResources(), android.R.drawable.ic_media_next), "Next", pendingIntentNext)
         }
 
+        val actionIntentToolbar = Intent(this, CCTReceiver::class.java)
+        val pendingIntentToolbar = PendingIntent.getBroadcast(this, 0, actionIntentToolbar, 0)
+
         val remoteViews = RemoteViews(packageName, R.layout.custom_tab_navigation)
+        remoteViews.setViewVisibility(R.id.button_next,
+                if (pq.getPages().size > 1)
+                    View.VISIBLE
+                else
+                    View.INVISIBLE
+        )
         val ids = intArrayOf(R.id.button_done, R.id.button_next)
-        builder.setSecondaryToolbarViews(remoteViews, ids, pendingIntentNext)
+        builder.setSecondaryToolbarViews(remoteViews, ids, pendingIntentToolbar)
 
         val customTabsIntent = builder.build()
         // We (TQ) are probably the default app - we need to explicitly set the browser to be opened.
@@ -142,9 +152,21 @@ class QueueViewActivity : AppCompatActivity() {
     }
 
     class CCTReceiver(): BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent?) {
+        override fun onReceive(context: Context, intent: Intent) {
             val qvIntent = Intent(context, QueueViewActivity::class.java)
-            qvIntent.putExtras(intent?.extras)
+            if (intent.hasExtra(CustomTabsIntent.EXTRA_REMOTEVIEWS_CLICKED_ID)) {
+                val clickedId = intent.getIntExtra(CustomTabsIntent.EXTRA_REMOTEVIEWS_CLICKED_ID, -1);
+
+                val flag = when (clickedId) {
+                    R.id.button_done -> FLAG_REMOVE_URL
+                    R.id.button_next -> FLAG_NEXT
+                    // Default: do nothing
+                    else -> FLAG_KEEP
+                }
+                qvIntent.putExtra(flag, true)
+            } else {
+                qvIntent.putExtras(intent?.extras)
+            }
             context.startActivity(qvIntent)
         }
     }
@@ -192,34 +214,12 @@ class QueueViewActivity : AppCompatActivity() {
     }
 
     override fun onResume() {
-        // TODO: this is broken (and hard to understand)
-        // We could also receive onResume if the app is killed (while a custom tab is open)
-        // and restarted, leading to the tab being lost. Therefore it's ultimately better to not
-        // delete any data with the X button (which might be better UX in general).
-        // Our previous assumption was that we'd receive onResume (with a LAST_URL set) only when
-        // the user uses X to exit the custom tab (we don't receive any callbacks in that case).
-
         super.onResume()
 
         val pageList = findViewById(R.id.page_list) as RecyclerView
 
         val loaderCallbacks = QueuedPageLoaderCallbacks(this, pageList.adapter as PageListAdapter)
         supportLoaderManager.initLoader(0, null, loaderCallbacks).forceLoad()
-
-        val preferences = getPreferences(MODE_PRIVATE)
-        val url = preferences.getString(KEY_LAST_URL, null)
-
-        if (url != null) {
-            val pq = getPageQueue(this)
-
-            preferences.edit()
-                    .putString(KEY_LAST_URL, null)
-                    .apply()
-
-            if (!intent.hasExtra(FLAG_KEEP_URL)) {
-                pq.remove(url)
-            }
-        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
