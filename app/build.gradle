@@ -38,6 +38,7 @@ dependencies {
     androidTestCompile 'com.android.support.test:runner:0.4.1'
     androidTestCompile 'com.android.support.test:rules:0.4.1'
 
+    compile "com.android.support:cardview-v7:$tools_version"
     compile "com.android.support:customtabs:$tools_version"
     compile "com.android.support:support-v4:$tools_version"
 }
