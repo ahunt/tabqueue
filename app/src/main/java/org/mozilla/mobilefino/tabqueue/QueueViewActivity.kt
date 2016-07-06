@@ -24,6 +24,7 @@ import android.view.*
 import android.widget.RemoteViews
 import android.widget.TextView
 import android.widget.Toast
+import com.androidzeitgeist.featurizer.Featurizer
 import org.mozilla.mobilefino.tabqueue.storage.getPageQueue
 import java.util.*
 
@@ -33,17 +34,34 @@ const val FLAG_REMOVE_URL = "REMOVE_URL"
 const val KEY_LAST_URL = "LAST_OPENED"
 
 class QueueViewActivity : AppCompatActivity() {
-    class QueuedPageLoader(context: Context): AsyncTaskLoader<List<String>>(context) {
+    data class PageInfo(val url: String,
+                       val title: String?,
+                       val description: String?)
 
-        override fun loadInBackground(): List<String> {
-            return getPageQueue(getContext()).getPages()
+    class QueuedPageLoader(context: Context): AsyncTaskLoader<List<PageInfo>>(context) {
+
+        override fun loadInBackground(): List<PageInfo> {
+            val urlList = getPageQueue(getContext()).getPages()
+
+            val pageList = ArrayList<PageInfo>(urlList.size)
+            val featurizer = Featurizer()
+
+            for (url in urlList) {
+                val features = featurizer.featurize(url)
+                val pageInfo = PageInfo(url,
+                        features.title,
+                        features.description)
+                pageList.add(pageInfo)
+            }
+
+            return pageList
         }
 
         // TODO: force reloads using onContentChanged()
         // TODO: first implement callbacks / update notifications from PageQueue
     }
 
-    class QueuedPageLoaderCallbacks(context: Context, adapter: PageListAdapter): LoaderManager.LoaderCallbacks<List<String>> {
+    class QueuedPageLoaderCallbacks(context: Context, adapter: PageListAdapter): LoaderManager.LoaderCallbacks<List<PageInfo>> {
         var mAdapter: PageListAdapter
         var mContext: Context
 
@@ -52,29 +70,33 @@ class QueueViewActivity : AppCompatActivity() {
             mContext = context.applicationContext
         }
 
-        override fun onLoadFinished(loader: Loader<List<String>>?, data: List<String>) {
+        override fun onLoadFinished(loader: Loader<List<PageInfo>>?, data: List<PageInfo>) {
             mAdapter.setPages(data)
         }
 
-        override fun onCreateLoader(id: Int, args: Bundle?): Loader<List<String>>? {
+        override fun onCreateLoader(id: Int, args: Bundle?): Loader<List<PageInfo>>? {
             return QueuedPageLoader(mContext)
         }
 
-        override fun onLoaderReset(loader: Loader<List<String>>?) {
+        override fun onLoaderReset(loader: Loader<List<PageInfo>>?) {
             mAdapter.setPages(Collections.emptyList())
         }
     }
 
     inner class PageViewHolder(v: View): RecyclerView.ViewHolder(v), View.OnClickListener {
         val title: TextView
+        val description: TextView
+        val link: TextView
 
         init {
             title = v.findViewById(R.id.page_title) as TextView
+            description = v.findViewById(R.id.page_description) as TextView
+            link = v.findViewById(R.id.page_url) as TextView
             v.setOnClickListener(this)
         }
 
         override fun onClick(view: View) {
-            val url = title.text.toString()
+            val url = link.text.toString()
             openCustomTab(url)
         }
     }
@@ -93,6 +115,8 @@ class QueueViewActivity : AppCompatActivity() {
             if (intent.hasExtra(FLAG_NEXT)) {
                 // TODO: grab the next page, not the first page in the list. (We don't really care
                 // for now though.)
+                // If we have a filtered set of results we want the next page in the filtered list
+                // (we don't support any filtering yet though).
                 if (pq.getPages().size > 0) {
                     val nextURL = pq.getPages().first()
 
@@ -172,7 +196,7 @@ class QueueViewActivity : AppCompatActivity() {
     }
 
     inner class PageListAdapter(): RecyclerView.Adapter<PageViewHolder>() {
-        private var mPages: List<String> = Collections.emptyList()
+        private var mPages: List<PageInfo> = Collections.emptyList()
 
         override fun getItemCount(): Int {
             return mPages.size
@@ -187,10 +211,14 @@ class QueueViewActivity : AppCompatActivity() {
         }
 
         override fun onBindViewHolder(holder: PageViewHolder, position: Int) {
-            holder.title.text = mPages.get(position)
+            val info = mPages.get(position)
+
+            holder.title.text = info.title
+            holder.description.text = info.description
+            holder.link.text = info.url
         }
 
-        fun setPages(pages: List<String>) {
+        fun setPages(pages: List<PageInfo>) {
             mPages = pages
 
             notifyDataSetChanged()

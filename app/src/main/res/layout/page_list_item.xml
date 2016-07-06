@@ -5,14 +5,52 @@
              android:layout_height="wrap_content"
              android:layout_margin="5dp">
 
-    <TextView
-        android:id="@+id/page_title"
+    <GridLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="5dp"
-        android:textAppearance="?android:attr/textAppearanceLarge"
-        tools:text="Exciting article about stuff you wanted to know about since it's really interesting and on and on and on and on and on and on and on"
-        android:textStyle="bold"
-        android:maxLines="2"/>
+        android:columnCount="2"
+        android:rowCount="3">
+        <TextView
+            android:id="@+id/page_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="5dp"
+            android:textAppearance="?android:attr/textAppearanceLarge"
+            tools:text="Exciting article about stuff you wanted to know about since it's really interesting and on and on and on and on and on and on and on"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:layout_column="0"
+            android:layout_columnSpan="2"
+            android:layout_row="0"/>
+
+        <ImageView android:background="#FF0000"
+                   android:layout_height="40dp"
+                   android:layout_width="40dp"
+                   android:layout_column="0"
+                   android:layout_row="1"
+                   android:layout_rowSpan="2"/>
+
+        <TextView
+            android:id="@+id/page_description"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="5dp"
+            tools:text="Here you'll see a page description which contains information about the page, the things it talks about, more things, less things, stuff, and information"
+            android:maxLines="2"
+            android:layout_column="1"
+            android:layout_row="1"/>
+
+        <TextView
+            android:id="@+id/page_url"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="5dp"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            tools:text="www.something.com/a/long/page/url/leading/to/cool/things"
+            android:maxLines="1"
+            android:layout_column="1"
+            android:layout_row="2"/>
+
+    </GridLayout>
 
 </android.support.v7.widget.CardView>
