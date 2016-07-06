@@ -56,7 +56,13 @@ class PageQueue {
 
     fun add(url: String) {
         synchronized(mPageList) {
-            mPageList.add(url)
+            mPageList.add(
+                    if (url.endsWith('/')) {
+                        url.substring(0..(url.length - 2))
+                    } else {
+                        url
+                    }
+            )
         }
 
         commit()
