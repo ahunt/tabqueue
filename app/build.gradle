@@ -6,7 +6,7 @@ android {
     buildToolsVersion "24"
     defaultConfig {
         applicationId "org.mozilla.mobilefino.tabqueue"
-        minSdkVersion 15
+        minSdkVersion 21
         targetSdkVersion 24
         versionCode 1
         versionName "1.0"
@@ -41,6 +41,8 @@ dependencies {
     compile "com.android.support:cardview-v7:$tools_version"
     compile "com.android.support:customtabs:$tools_version"
     compile "com.android.support:support-v4:$tools_version"
+
+    compile 'com.androidzeitgeist.featurizer:featurizer:1.1.0'
 }
 repositories {
     mavenCentral()
