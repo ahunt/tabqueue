@@ -25,7 +25,12 @@ import android.widget.RemoteViews
 import android.widget.TextView
 import android.widget.Toast
 import com.androidzeitgeist.featurizer.Featurizer
+import com.androidzeitgeist.featurizer.features.WebsiteFeatures
+import org.mozilla.mobilefino.tabqueue.storage.PageInfoFetcher
+import org.mozilla.mobilefino.tabqueue.storage.PageInfoReceiver
+import org.mozilla.mobilefino.tabqueue.storage.getPageInfoCache
 import org.mozilla.mobilefino.tabqueue.storage.getPageQueue
+import org.mozilla.mobilefino.tabqueue.util.normaliseURL
 import java.util.*
 
 const val FLAG_KEEP = "KEEP_URL"
@@ -38,30 +43,19 @@ class QueueViewActivity : AppCompatActivity() {
                        val title: String?,
                        val description: String?)
 
-    class QueuedPageLoader(context: Context): AsyncTaskLoader<List<PageInfo>>(context) {
+    class QueuedPageLoader(context: Context): AsyncTaskLoader<List<String>>(context) {
 
-        override fun loadInBackground(): List<PageInfo> {
+        override fun loadInBackground(): List<String> {
             val urlList = getPageQueue(getContext()).getPages()
 
-            val pageList = ArrayList<PageInfo>(urlList.size)
-            val featurizer = Featurizer()
-
-            for (url in urlList) {
-                val features = featurizer.featurize(url)
-                val pageInfo = PageInfo(url,
-                        features.title,
-                        features.description)
-                pageList.add(pageInfo)
-            }
-
-            return pageList
+            return urlList;
         }
 
         // TODO: force reloads using onContentChanged()
         // TODO: first implement callbacks / update notifications from PageQueue
     }
 
-    class QueuedPageLoaderCallbacks(context: Context, adapter: PageListAdapter): LoaderManager.LoaderCallbacks<List<PageInfo>> {
+    class QueuedPageLoaderCallbacks(context: Context, adapter: PageListAdapter): LoaderManager.LoaderCallbacks<List<String>> {
         var mAdapter: PageListAdapter
         var mContext: Context
 
@@ -70,15 +64,15 @@ class QueueViewActivity : AppCompatActivity() {
             mContext = context.applicationContext
         }
 
-        override fun onLoadFinished(loader: Loader<List<PageInfo>>?, data: List<PageInfo>) {
+        override fun onLoadFinished(loader: Loader<List<String>>?, data: List<String>) {
             mAdapter.setPages(data)
         }
 
-        override fun onCreateLoader(id: Int, args: Bundle?): Loader<List<PageInfo>>? {
+        override fun onCreateLoader(id: Int, args: Bundle?): Loader<List<String>>? {
             return QueuedPageLoader(mContext)
         }
 
-        override fun onLoaderReset(loader: Loader<List<PageInfo>>?) {
+        override fun onLoaderReset(loader: Loader<List<String>>?) {
             mAdapter.setPages(Collections.emptyList())
         }
     }
@@ -196,7 +190,7 @@ class QueueViewActivity : AppCompatActivity() {
     }
 
     inner class PageListAdapter(): RecyclerView.Adapter<PageViewHolder>() {
-        private var mPages: List<PageInfo> = Collections.emptyList()
+        private var mPages: List<String> = Collections.emptyList()
 
         override fun getItemCount(): Int {
             return mPages.size
@@ -211,14 +205,24 @@ class QueueViewActivity : AppCompatActivity() {
         }
 
         override fun onBindViewHolder(holder: PageViewHolder, position: Int) {
-            val info = mPages.get(position)
+            val url = mPages.get(position)
 
-            holder.title.text = info.title
-            holder.description.text = info.description
-            holder.link.text = info.url
+            holder.link.text = url
+            holder.title.text = null
+            holder.description.text = null
+
+            PageInfoFetcher().getPageInfo(url, this@QueueViewActivity, object: PageInfoReceiver {
+                override fun processPageInfo(features: WebsiteFeatures) {
+                    if (holder.link.text.equals(normaliseURL(features.url))) {
+                        holder.title.text = features.title
+                        holder.description.text = features.description
+                    }
+                }
+
+            })
         }
 
-        fun setPages(pages: List<PageInfo>) {
+        fun setPages(pages: List<String>) {
             mPages = pages
 
             notifyDataSetChanged()
