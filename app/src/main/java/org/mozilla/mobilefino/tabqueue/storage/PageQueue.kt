@@ -5,14 +5,14 @@ import org.json.JSONArray
 import java.lang.ref.WeakReference
 import java.util.*
 
-val SHAREDPREFERENCES_NAME = "pagequeue"
-
-val KEY_QUEUE = "key_sitequeue"
-
 /**
  * List of pages that have been queued for reading.
  */
 class PageQueue {
+    val SHAREDPREFERENCES_NAME = "pagequeue"
+
+    val KEY_QUEUE = "key_sitequeue"
+
     val mPageList: LinkedHashSet<String>
 
     val mContext: WeakReference<Context>
