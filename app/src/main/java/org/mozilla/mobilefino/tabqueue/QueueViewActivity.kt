@@ -2,15 +2,15 @@ package org.mozilla.mobilefino.tabqueue
 
 import android.app.Activity
 import android.app.PendingIntent
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.DialogInterface
-import android.content.Intent
+import android.content.*
 import android.graphics.BitmapFactory
 import android.graphics.drawable.ColorDrawable
 import android.net.Uri
 import android.os.Bundle
+import android.support.customtabs.CustomTabsCallback
+import android.support.customtabs.CustomTabsClient
 import android.support.customtabs.CustomTabsIntent
+import android.support.customtabs.CustomTabsServiceConnection
 import android.support.design.widget.FloatingActionButton
 import android.support.design.widget.Snackbar
 import android.support.v4.app.LoaderManager
@@ -39,6 +39,8 @@ const val FLAG_REMOVE_URL = "REMOVE_URL"
 const val KEY_LAST_URL = "LAST_OPENED"
 
 class QueueViewActivity : AppCompatActivity() {
+    val CUSTOMTAB_PACKAGE = "com.chrome.dev"
+
     data class PageInfo(val url: String,
                        val title: String?,
                        val description: String?)
@@ -156,7 +158,7 @@ class QueueViewActivity : AppCompatActivity() {
         val customTabsIntent = builder.build()
         // We (TQ) are probably the default app - we need to explicitly set the browser to be opened.
         // For now we can just hardcode one browser - eventually we'll need a selector.
-        customTabsIntent.intent.setPackage("com.chrome.dev")
+        customTabsIntent.intent.setPackage(CUSTOMTAB_PACKAGE)
 
         // Store the last URL to be opened in a preference - this allows us to remove it from the
         // list when we return to the Activity (assuming we don't pass the keep-url flag).
@@ -246,6 +248,18 @@ class QueueViewActivity : AppCompatActivity() {
             val addPageDialog = AddPageDialog()
             addPageDialog.show(fragmentManager, "dialog")
         }
+
+        val connection = object: CustomTabsServiceConnection() {
+            override fun onCustomTabsServiceConnected(name: ComponentName, client: CustomTabsClient) {
+                client.warmup(0)
+            }
+
+            override fun onServiceDisconnected(p0: ComponentName?) {
+            }
+
+        }
+
+        CustomTabsClient.bindCustomTabsService(this, CUSTOMTAB_PACKAGE, connection)
     }
 
     override fun onResume() {
