@@ -2,6 +2,7 @@ package org.mozilla.mobilefino.tabqueue.storage
 
 import android.content.Context
 import org.json.JSONArray
+import org.mozilla.mobilefino.tabqueue.util.normaliseURL
 import java.lang.ref.WeakReference
 import java.util.*
 
@@ -57,11 +58,7 @@ class PageQueue {
     fun add(url: String) {
         synchronized(mPageList) {
             mPageList.add(
-                    if (url.endsWith('/')) {
-                        url.substring(0..(url.length - 2))
-                    } else {
-                        url
-                    }
+                    normaliseURL(url)
             )
         }
 
