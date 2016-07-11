@@ -83,8 +83,8 @@ class PageQueue {
     }
 }
 
-val sPageQueueLock = Object()
-var sPageQueue: PageQueue? = null
+private val sPageQueueLock = Object()
+private var sPageQueue: PageQueue? = null
 
 fun getPageQueue(context: Context): PageQueue {
     synchronized(sPageQueueLock) {
