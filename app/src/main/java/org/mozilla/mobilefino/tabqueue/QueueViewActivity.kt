@@ -209,6 +209,14 @@ class QueueViewActivity : AppCompatActivity() {
             } else {
                 qvIntent.putExtras(intent?.extras)
             }
+
+            // On 5.1 and below, startActivity crashes by default because we have the wrong context.
+            // On N this flag is unneeded, I haven't been able to test Marshmallow yet, let's cover
+            // it just to be safe.
+            if (android.os.Build.VERSION.SDK_INT <= android.os.Build.VERSION_CODES.M) {
+                qvIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+
             context.startActivity(qvIntent)
         }
     }
