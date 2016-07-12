@@ -51,6 +51,7 @@ class QueueViewActivity : AppCompatActivity() {
     var mFilter: String = ""
 
     var loaderCallbacks: QueuedPageLoaderCallbacks? = null
+    var connection: CustomTabsServiceConnection? = null
 
     class QueuedPageLoader(context: Context, val filter: String): AsyncTaskLoader<List<String>>(context) {
 
@@ -288,7 +289,7 @@ class QueueViewActivity : AppCompatActivity() {
         loaderCallbacks = QueuedPageLoaderCallbacks(this, pageList.adapter as PageListAdapter)
         supportLoaderManager.initLoader(0, null, loaderCallbacks).forceLoad()
 
-        val connection = object: CustomTabsServiceConnection() {
+        connection = object: CustomTabsServiceConnection() {
             override fun onCustomTabsServiceConnected(name: ComponentName, client: CustomTabsClient) {
                 client.warmup(0)
             }
@@ -301,11 +302,16 @@ class QueueViewActivity : AppCompatActivity() {
         CustomTabsClient.bindCustomTabsService(this, CUSTOMTAB_PACKAGE, connection)
     }
 
-
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         // Inflate the menu; this adds items to the action bar if it is present.
         menuInflater.inflate(R.menu.menu_queue_view, menu)
         return true
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+
+        unbindService(connection)
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
