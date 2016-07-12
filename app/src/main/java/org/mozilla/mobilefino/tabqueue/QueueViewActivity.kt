@@ -20,7 +20,10 @@ import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.support.v7.widget.Toolbar
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.*
+import android.widget.EditText
 import android.widget.RemoteViews
 import android.widget.TextView
 import android.widget.Toast
@@ -45,19 +48,35 @@ class QueueViewActivity : AppCompatActivity() {
                        val title: String?,
                        val description: String?)
 
-    class QueuedPageLoader(context: Context): AsyncTaskLoader<List<String>>(context) {
+    var mFilter: String = ""
+
+    var loaderCallbacks: QueuedPageLoaderCallbacks? = null
+
+    class QueuedPageLoader(context: Context, val filter: String): AsyncTaskLoader<List<String>>(context) {
 
         override fun loadInBackground(): List<String> {
             val urlList = getPageQueue(getContext()).getPages()
 
-            return urlList;
+            if (filter.length == 0) {
+                return urlList
+            }
+
+            // Yes there is probably a faster way of doing this, but this is a prototype
+            val filteredList = ArrayList<String>()
+            for (url in urlList) {
+                if (url.contains(filter, true)) {
+                    filteredList.add(url)
+                }
+            }
+
+            return filteredList;
         }
 
         // TODO: force reloads using onContentChanged()
         // TODO: first implement callbacks / update notifications from PageQueue
     }
 
-    class QueuedPageLoaderCallbacks(context: Context, adapter: PageListAdapter): LoaderManager.LoaderCallbacks<List<String>> {
+    inner class QueuedPageLoaderCallbacks(context: Context, adapter: PageListAdapter): LoaderManager.LoaderCallbacks<List<String>> {
         var mAdapter: PageListAdapter
         var mContext: Context
 
@@ -71,7 +90,7 @@ class QueueViewActivity : AppCompatActivity() {
         }
 
         override fun onCreateLoader(id: Int, args: Bundle?): Loader<List<String>>? {
-            return QueuedPageLoader(mContext)
+            return QueuedPageLoader(mContext, mFilter)
         }
 
         override fun onLoaderReset(loader: Loader<List<String>>?) {
@@ -249,6 +268,21 @@ class QueueViewActivity : AppCompatActivity() {
             addPageDialog.show(fragmentManager, "dialog")
         }
 
+        val searchBox = findViewById(R.id.search_box) as EditText
+        searchBox.addTextChangedListener(object: TextWatcher {
+            override fun afterTextChanged(p0: Editable?) {
+            }
+
+            override fun beforeTextChanged(p0: CharSequence?, p1: Int, p2: Int, p3: Int) {
+            }
+
+            override fun onTextChanged(text: CharSequence, p1: Int, p2: Int, p3: Int) {
+                mFilter = text.toString()
+                supportLoaderManager.restartLoader(0, null, loaderCallbacks).forceLoad()
+            }
+
+        })
+
         val connection = object: CustomTabsServiceConnection() {
             override fun onCustomTabsServiceConnected(name: ComponentName, client: CustomTabsClient) {
                 client.warmup(0)
@@ -267,7 +301,7 @@ class QueueViewActivity : AppCompatActivity() {
 
         val pageList = findViewById(R.id.page_list) as RecyclerView
 
-        val loaderCallbacks = QueuedPageLoaderCallbacks(this, pageList.adapter as PageListAdapter)
+        loaderCallbacks = QueuedPageLoaderCallbacks(this, pageList.adapter as PageListAdapter)
         supportLoaderManager.initLoader(0, null, loaderCallbacks).forceLoad()
     }
 
