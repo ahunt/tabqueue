@@ -139,6 +139,8 @@ class QueueViewActivity : AppCompatActivity() {
                 }
             }
 
+            supportLoaderManager.restartLoader(0, null, loaderCallbacks).forceLoad()
+
             // There's no strict need to clear this URL, however we might as well get rid of it for
             // organisation reasons.
             preferences.edit()
@@ -283,6 +285,9 @@ class QueueViewActivity : AppCompatActivity() {
 
         })
 
+        loaderCallbacks = QueuedPageLoaderCallbacks(this, pageList.adapter as PageListAdapter)
+        supportLoaderManager.initLoader(0, null, loaderCallbacks).forceLoad()
+
         val connection = object: CustomTabsServiceConnection() {
             override fun onCustomTabsServiceConnected(name: ComponentName, client: CustomTabsClient) {
                 client.warmup(0)
@@ -296,14 +301,6 @@ class QueueViewActivity : AppCompatActivity() {
         CustomTabsClient.bindCustomTabsService(this, CUSTOMTAB_PACKAGE, connection)
     }
 
-    override fun onResume() {
-        super.onResume()
-
-        val pageList = findViewById(R.id.page_list) as RecyclerView
-
-        loaderCallbacks = QueuedPageLoaderCallbacks(this, pageList.adapter as PageListAdapter)
-        supportLoaderManager.initLoader(0, null, loaderCallbacks).forceLoad()
-    }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         // Inflate the menu; this adds items to the action bar if it is present.
